@@ -18,7 +18,6 @@ import { SearchBox } from "@/components/ui/search-box"
 import { EmptyChat } from "@/components/ui/empty-chat"
 import { YouTubeInput } from "@/components/ui/youtube-input"
 import { AnimatedContainer } from "@/components/ui/animated-container"
-import { UsageLimits } from "@/components/ui/usage-limits"
 import { processYoutubeVideo } from "@/lib/actions/youtube"
 
 export default function Home() {
@@ -32,28 +31,10 @@ export default function Home() {
   const [searchTopic, setSearchTopic] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([])
-  const [usageLimits, setUsageLimits] = useState({
-    video: 1,
-    search: 3,
-    chat: 5,
-  })
 
   const [messages, setMessages] = useState<{id: string; role: 'user' | 'assistant'; content: string}[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // Function to update limits from API response headers
-  const updateLimitsFromHeaders = (headers: Headers) => {
-    const type = headers.get("X-RateLimit-Type");
-    const remaining = parseInt(headers.get("X-RateLimit-Remaining") || "0");
-    
-    if (type) {
-      setUsageLimits(prev => ({
-        ...prev,
-        [type]: remaining,
-      }));
-    }
-  };
 
   // Function to search for topics in the video
   const handleTopicSearch = async (e: React.FormEvent) => {
@@ -174,9 +155,6 @@ export default function Home() {
         })
       });
 
-      // Update usage limits from headers
-      updateLimitsFromHeaders(response.headers);
-
       if (!response.ok) {
         throw new Error('Failed to get response');
       }
@@ -201,18 +179,13 @@ export default function Home() {
     <main className="container mx-auto p-4 py-8 max-w-5xl">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
+          <Youtube className="h-5 w-5 text-red-600" />
           <h1 className="text-2xl font-bold tracking-tight">YouTube Chat</h1>
         </div>
         <div className="flex items-center gap-4">
           <ThemeToggle />
         </div>
       </div>
-
-      <UsageLimits
-        videoRemaining={usageLimits.video}
-        searchRemaining={usageLimits.search}
-        chatRemaining={usageLimits.chat}
-      />
 
       <AnimatedContainer
         variant="fade-slide-up"

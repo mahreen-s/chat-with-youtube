@@ -1,14 +1,8 @@
 import { processYoutubeVideo } from "@/lib/actions/youtube";
-import { checkLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
-    // Check video limit
-    const limitCheck = await checkLimit(req, 'video');
-    if (!limitCheck.success) {
-      return limitCheck.response;
-    }
-
+    // Remove mock limit headers completely
     const { url } = await req.json();
 
     if (!url) {
@@ -29,7 +23,6 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify(result), {
       headers: {
         "Content-Type": "application/json",
-        ...limitCheck.headers,
       },
     });
   } catch (error) {

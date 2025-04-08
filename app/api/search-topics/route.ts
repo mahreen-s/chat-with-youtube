@@ -1,6 +1,5 @@
 import { OpenAI } from "openai"
 import { findRelevantContent } from "@/lib/embeddings"
-import { checkLimit } from "@/lib/rate-limit"
 
 // Initialize OpenAI client with API key
 const openai = new OpenAI({
@@ -9,12 +8,7 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    // Check search limit
-    const limitCheck = await checkLimit(req, 'search');
-    if (!limitCheck.success) {
-      return limitCheck.response;
-    }
-
+    // Remove mock limit headers completely
     const { query, videoId, isGeneratedTranscript } = await req.json()
 
     // If no videoId is provided, return an error
@@ -75,7 +69,6 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify({ suggestedQuestions: questions }), {
       headers: {
         "Content-Type": "application/json",
-        ...limitCheck.headers,
       },
     });
   } catch (error) {

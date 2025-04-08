@@ -1,6 +1,5 @@
 import { openai } from "@/lib/openai";
 import { findRelevantContent } from "@/lib/embeddings";
-import { checkLimit } from "@/lib/rate-limit";
 
 export const runtime = "edge";
 
@@ -11,12 +10,7 @@ function streamText(text: string) {
 
 export async function POST(req: Request) {
   try {
-    // Check chat limit
-    const limitCheck = await checkLimit(req, 'chat');
-    if (!limitCheck.success) {
-      return limitCheck.response;
-    }
-
+    // Remove mock limit headers completely
     const { messages, videoId, isGeneratedTranscript } = await req.json();
 
     if (!videoId) {
@@ -82,7 +76,6 @@ export async function POST(req: Request) {
         {
           headers: {
             "Content-Type": "application/json",
-            ...limitCheck.headers,
           },
         }
       );
