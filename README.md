@@ -78,7 +78,3 @@ Chat with YouTube videos using AI. Ask questions about any YouTube video and get
 - **Video Captions**: Works best with videos that have accurate captions
 - **Generated Descriptions**: For videos without captions, responses are based on AI-generated descriptions which may not accurately reflect video content
 - **Context Length**: Very long videos may have partial transcript processing
-
-## License
-
-MIT 

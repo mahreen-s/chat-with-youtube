@@ -1,6 +1,6 @@
-import { streamText } from "ai"
+import { OpenAI } from "openai"
 import { findRelevantContent } from "@/lib/embeddings"
-import OpenAI from "openai"
+import { checkLimit } from "@/lib/rate-limit"
 
 // Initialize OpenAI client with API key
 const openai = new OpenAI({
@@ -9,82 +9,81 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
+    // Check search limit
+    const limitCheck = await checkLimit(req, 'search');
+    if (!limitCheck.success) {
+      return limitCheck.response;
+    }
+
     const { query, videoId, isGeneratedTranscript } = await req.json()
 
     // If no videoId is provided, return an error
     if (!videoId) {
-      return new Response(JSON.stringify({ error: "No video ID provided" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      })
+      return new Response("Video ID is required", { status: 400 });
     }
 
-    console.log(`Processing topic search for video ${videoId}. Query: "${query}"`);
+    console.log("Processing topic search for video:", videoId);
 
     // Find relevant content related to the search topic
     const relevantContent = await findRelevantContent(query, videoId, 8)
 
+    if (!relevantContent || !relevantContent.length) {
+      return new Response(
+        JSON.stringify({
+          error: "No relevant content found in the video transcript.",
+        }),
+        { status: 404 }
+      );
+    }
+
     // Merge neighboring chunks
     const mergedContent = mergeNeighboringChunks(relevantContent);
     
-    // Create a context from the relevant content with similarity scores
-    const contentSnippets = mergedContent.map(item => item.content).join("\n\n");
+    // Format the content
+    const formattedContent = mergedContent
+      .map((item: { content: string; similarity?: number }, index: number) => 
+        `[Segment ${index + 1}${item.similarity ? ` (relevance: ${Math.round(item.similarity * 100)}%)` : ''}]: ${item.content}`
+      )
+      .join("\n\n");
 
-    console.log(`Found ${mergedContent.length} relevant segments for topic search`);
-
-    // If no relevant content was found
-    if (mergedContent.length === 0) {
-      return new Response(JSON.stringify({ 
-        suggestedQuestions: [],
-        message: "No relevant content found"
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    }
-
-    // Use OpenAI to generate suggested questions
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    // Generate suggested questions based on the relevant content
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are an AI assistant that helps generate insightful questions about video content.
+          content: `You are a helpful AI assistant that generates insightful questions about YouTube video content.
+          Based on the following content from the video transcript, generate 3-5 specific, clear, and insightful questions that users might want to ask.
+          The questions should be directly related to the content and help users understand the video better.
           
-          You will be given content from a YouTube video transcript${isGeneratedTranscript ? ' (AI-generated based on the title)' : ''} that is relevant to a user's search topic.
+          ${isGeneratedTranscript 
+            ? "IMPORTANT: This video does not have captions available. The following is an AI-generated description based on the video title, not an actual transcript."
+            : "Content from the video:"}
           
-          Your task is to create 4-6 specific, clear questions the user could ask about this content.
-          The questions should:
-          1. Be directly answerable from the given content
-          2. Cover different aspects of the topic
-          3. Be conversational and natural
-          4. Include specific details from the content
-          5. Be interesting and insightful
-          
-          Return ONLY a JSON array of questions, with no other text.`
+          ${formattedContent}`,
         },
-        {
-          role: "user",
-          content: `Topic: ${query}\n\nRelevant video content:\n${contentSnippets}`
-        }
       ],
       temperature: 0.7,
-      response_format: { type: "json_object" }
-    })
+      max_tokens: 500,
+    });
 
-    // Parse and return the suggested questions
-    const suggestedQuestions = JSON.parse(completion.choices[0].message.content || "{}").questions || [];
+    const questions = response.choices[0].message.content
+      ?.split("\n")
+      .filter((q) => q.trim().length > 0)
+      .map((q) => q.replace(/^\d+\.\s*/, "").trim());
 
-    return new Response(JSON.stringify({ suggestedQuestions }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    })
+    return new Response(JSON.stringify({ suggestedQuestions: questions }), {
+      headers: {
+        "Content-Type": "application/json",
+        ...limitCheck.headers,
+      },
+    });
   } catch (error) {
-    console.error("Error in topic search API:", error)
-    return new Response(JSON.stringify({ error: "Failed to process topic search" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
+    console.error("Error in search topics API:", error);
+    return new Response(
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500 }
+    );
   }
 }
 

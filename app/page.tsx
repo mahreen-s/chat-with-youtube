@@ -9,8 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Send, Youtube, AlertTriangle, Search, Info, ArrowRight, MessageSquare, Video, ExternalLink } from "lucide-react"
-import { useChat } from "ai/react"
-import { processYoutubeVideo } from "@/lib/actions/youtube"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LoadingDots } from "@/components/ui/loading-dots"
 import { VideoEmbed } from "@/components/ui/video-embed"
@@ -20,6 +18,8 @@ import { SearchBox } from "@/components/ui/search-box"
 import { EmptyChat } from "@/components/ui/empty-chat"
 import { YouTubeInput } from "@/components/ui/youtube-input"
 import { AnimatedContainer } from "@/components/ui/animated-container"
+import { UsageLimits } from "@/components/ui/usage-limits"
+import { processYoutubeVideo } from "@/lib/actions/youtube"
 
 export default function Home() {
   const [youtubeUrl, setYoutubeUrl] = useState("")
@@ -32,14 +32,28 @@ export default function Home() {
   const [searchTopic, setSearchTopic] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([])
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: "/api/chat",
-    body: {
-      videoId: videoId,
-      isGeneratedTranscript,
-    },
+  const [usageLimits, setUsageLimits] = useState({
+    video: 1,
+    search: 3,
+    chat: 5,
   })
+
+  const [messages, setMessages] = useState<{id: string; role: 'user' | 'assistant'; content: string}[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Function to update limits from API response headers
+  const updateLimitsFromHeaders = (headers: Headers) => {
+    const type = headers.get("X-RateLimit-Type");
+    const remaining = parseInt(headers.get("X-RateLimit-Remaining") || "0");
+    
+    if (type) {
+      setUsageLimits(prev => ({
+        ...prev,
+        [type]: remaining,
+      }));
+    }
+  };
 
   // Function to search for topics in the video
   const handleTopicSearch = async (e: React.FormEvent) => {
@@ -73,7 +87,7 @@ export default function Home() {
   // Function to use a suggested question
   const useQuestion = (question: string) => {
     // Set the input field to the suggested question
-    handleInputChange({ target: { value: question } } as any)
+    setInput(question)
   }
 
   // New function to handle YouTube URL processing from component
@@ -126,18 +140,79 @@ export default function Home() {
     return match && match[2].length === 11 ? match[2] : null
   }
 
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  // Handle submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || !videoId) return;
+
+    // Add user message to chat
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user' as const,
+      content: input
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Call the chat API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          videoId,
+          isGeneratedTranscript
+        })
+      });
+
+      // Update usage limits from headers
+      updateLimitsFromHeaders(response.headers);
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      // Get the AI response
+      const data = await response.json();
+      
+      // Add AI message to chat
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: data.content
+      }]);
+    } catch (error) {
+      console.error('Error in chat:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="container mx-auto p-4 py-8 max-w-5xl">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
-
           <h1 className="text-2xl font-bold tracking-tight">YouTube Chat</h1>
         </div>
         <div className="flex items-center gap-4">
-        
           <ThemeToggle />
         </div>
       </div>
+
+      <UsageLimits
+        videoRemaining={usageLimits.video}
+        searchRemaining={usageLimits.search}
+        chatRemaining={usageLimits.chat}
+      />
 
       <AnimatedContainer
         variant="fade-slide-up"
