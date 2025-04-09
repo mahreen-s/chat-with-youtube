@@ -51,8 +51,9 @@ Chat with YouTube videos using AI. Ask questions about any YouTube video and get
    ```
    OPENAI_API_KEY=your_openai_api_key
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
+   ⚠️ Do not include your Supabase SERVICE_ROLE_KEY in this file — it's powerful and should never be exposed in the frontend or committed to Git.       If you need it for admin scripts or local development tasks, store it separately in .env.admin.local (and ensure it's listed in .gitignore).
 
 4. Set up the Supabase database:
    - Create tables for videos, video chunks, and vector storage
