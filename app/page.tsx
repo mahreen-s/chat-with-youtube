@@ -177,10 +177,12 @@ export default function Home() {
 
   return (
     <main className="container mx-auto p-4 py-8 max-w-5xl">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <Youtube className="h-5 w-5 text-red-600" />
-          <h1 className="text-2xl font-bold tracking-tight">YouTube Chat</h1>
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex items-center gap-3">
+          <Youtube className="h-8 w-8 text-[#8B5FBF]" />
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#8B5FBF] to-[#61398F] bg-clip-text text-transparent">
+            VidChat AI
+          </h1>
         </div>
         <div className="flex items-center gap-4">
           <ThemeToggle />
@@ -191,13 +193,13 @@ export default function Home() {
         variant="fade-slide-up"
         className="mb-8"
       >
-        <Card className="border-border shadow-sm overflow-hidden">
-          <CardHeader className="bg-secondary/30 pb-4">
-            <CardTitle className="flex items-center gap-2">
+        <Card className="border-border shadow-lg overflow-hidden bg-bg-100">
+          <CardHeader className="bg-bg-200/50 pb-4">
+            <CardTitle className="flex items-center gap-2 text-text-100">
               <Video className="h-5 w-5 text-primary" />
               Add YouTube Video
             </CardTitle>
-            <CardDescription>Enter a YouTube URL to process the video and chat with its content</CardDescription>
+            <CardDescription className="text-text-200">Enter a YouTube URL to process the video and chat with its content</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <YouTubeInput
@@ -212,163 +214,91 @@ export default function Home() {
 
       {videoId && (
         <AnimatedContainer variant="fade-in" duration={0.5}>
-          <Tabs defaultValue="chat" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-secondary text-secondary-foreground mb-6 rounded-lg p-1">
-              <TabsTrigger 
-                value="video" 
-                className="data-[state=active]:bg-background rounded-md gap-2 py-2"
-              >
-                <Video className="h-4 w-4" />
-                Video
-              </TabsTrigger>
-              <TabsTrigger 
-                value="chat" 
-                className="data-[state=active]:bg-background rounded-md gap-2 py-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Chat
-              </TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Card className="border-border shadow-lg overflow-hidden bg-bg-100">
+              <CardHeader className="bg-bg-200/50 pb-4">
+                <CardTitle className="line-clamp-1 text-text-100">{videoTitle || `Video ${videoId}`}</CardTitle>
+                <CardDescription className="line-clamp-1 text-text-200">
+                  {videoTitle ? `Video ID: ${videoId}` : ''}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <VideoEmbed videoId={videoId} title={videoTitle || undefined} />
 
-            <TabsContent value="video" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
-              <Card className="border-border shadow-sm overflow-hidden">
-                <CardHeader className="bg-secondary/30 pb-4">
-                  <CardTitle className="line-clamp-1">{videoTitle || `Video ${videoId}`}</CardTitle>
-                  <CardDescription className="line-clamp-1">
-                    {videoTitle ? `Video ID: ${videoId}` : ''}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <VideoEmbed videoId={videoId} title={videoTitle || undefined} />
-
-                  {isGeneratedTranscript && (
-                    <div className="p-4">
-                      <Alert className="border border-yellow-600/30 bg-yellow-600/10">
-                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                        <AlertTitle className="text-yellow-500">Generated Content</AlertTitle>
-                        <AlertDescription>
-                          This video doesn't have captions available. We've generated a description based on the video
-                          title. Responses may not be as accurate as with videos that have proper transcripts.
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="chat" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
-              <Card className="border-border shadow-sm">
-                <CardHeader className="bg-secondary/30 pb-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    Chat with {videoTitle ? <span className="line-clamp-1">{videoTitle}</span> : `Video ${videoId}`}
-                  </CardTitle>
-                  <CardDescription>Ask questions about the video content or search for specific topics</CardDescription>
-
-                  {isGeneratedTranscript && (
-                    <Alert className="mt-2 border border-yellow-600/30 bg-yellow-600/10">
+                {isGeneratedTranscript && (
+                  <div className="p-4">
+                    <Alert className="border border-yellow-600/30 bg-yellow-600/10">
                       <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                      <AlertTitle className="text-yellow-500">Using AI-Generated Description</AlertTitle>
+                      <AlertTitle className="text-yellow-500">Generated Content</AlertTitle>
                       <AlertDescription>
-                        Since this video doesn't have captions, responses are based on an AI-generated description and may
-                        not accurately reflect the actual video content.
+                        This video doesn't have captions available. We've generated a description based on the video
                       </AlertDescription>
                     </Alert>
-                  )}
-                </CardHeader>
-                <CardContent className="p-4 pt-6">
-                  {videoId && (
-                    <div className="mb-6">
-                      <SearchBox
-                        placeholder="Search for topics in this video..."
-                        value={searchTopic}
-                        onChange={(e) => setSearchTopic(e.target.value)}
-                        onSearch={handleTopicSearch}
-                        isSearching={isSearching}
-                        containerClassName="mb-3"
-                      />
-                      
-                      {suggestedQuestions.length > 0 && (
-                        <AnimatedContainer variant="fade-slide-up" className="space-y-3 bg-secondary/30 rounded-lg p-3">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Info className="h-3.5 w-3.5" />
-                            <span>Suggested questions about <span className="font-medium">{searchTopic}</span>:</span>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {suggestedQuestions.map((question, index) => (
-                              <SuggestedQuestion
-                                key={index}
-                                question={question}
-                                onClick={useQuestion}
-                              />
-                            ))}
-                          </div>
-                        </AnimatedContainer>
-                      )}
-                    </div>
-                  )}
-                  
-                  <div className="h-[60vh] overflow-y-auto mb-4 p-4 rounded-lg bg-card border border-border transition-all">
-                    {messages.length === 0 ? (
-                      <AnimatedContainer variant="fade-in" duration={0.6}>
-                        <EmptyChat />
-                      </AnimatedContainer>
-                    ) : (
-                      <div className="space-y-6">
-                        {messages.map((message, index) => (
-                          <AnimatedContainer
-                            key={message.id}
-                            variant="fade-slide-up"
-                            delay={index * 0.05}
-                          >
-                            <ChatMessage 
-                              message={message.content}
-                              isUser={message.role === "user"}
-                            />
-                          </AnimatedContainer>
-                        ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-                        {isLoading && (
-                          <AnimatedContainer variant="fade-in" duration={0.2}>
-                            <div className="flex justify-start">
-                              <div className="max-w-[85%] rounded-lg p-3 shadow-sm bg-secondary text-secondary-foreground rounded-bl-none">
-                                <LoadingDots />
-                              </div>
-                            </div>
-                          </AnimatedContainer>
-                        )}
+            <Card className="border-border shadow-lg overflow-hidden bg-bg-100 h-[calc(100vh-12rem)] flex flex-col">
+              <CardHeader className="bg-bg-200/50 pb-4">
+                <CardTitle className="flex items-center gap-2 text-text-100">
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                  Chat with Video
+                </CardTitle>
+                <CardDescription className="text-text-200">Ask questions about the video content</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-y-auto space-y-4">
+                {messages.length === 0 ? (
+                  <EmptyChat />
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => (
+                      <ChatMessage 
+                        key={message.id} 
+                        message={message.content}
+                        isUser={message.role === "user"}
+                      />
+                    ))}
+                    {isLoading && (
+                      <div className="flex items-center justify-center p-4">
+                        <LoadingDots />
                       </div>
                     )}
                   </div>
-
-                  <form onSubmit={handleSubmit} className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        placeholder="Ask a question about the video..."
-                        value={input}
-                        onChange={handleInputChange}
-                        disabled={isLoading}
-                        className="bg-background border-border pr-12"
-                      />
-                      <Button 
-                        type="submit" 
-                        disabled={isLoading || !input}
-                        size="icon"
-                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                      </Button>
+                )}
+              </CardContent>
+              <CardFooter className="pt-4 border-t border-border">
+                <form onSubmit={handleSubmit} className="w-full space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      value={input}
+                      onChange={handleInputChange}
+                      placeholder="Ask a question about the video..."
+                      className="flex-1 bg-bg-200/50 border-border"
+                    />
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {suggestedQuestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedQuestions.map((question, index) => (
+                        <SuggestedQuestion
+                          key={index}
+                          question={question}
+                          onClick={() => useQuestion(question)}
+                        />
+                      ))}
                     </div>
-                  </form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  )}
+                </form>
+              </CardFooter>
+            </Card>
+          </div>
         </AnimatedContainer>
       )}
     </main>

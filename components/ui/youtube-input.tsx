@@ -43,7 +43,7 @@ export function YouTubeInput({
         <Button 
           type="submit" 
           disabled={isProcessing || !youtubeUrl}
-          className="bg-red-600 hover:bg-red-700 text-white"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           {isProcessing ? (
             <>
